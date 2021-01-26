@@ -179,7 +179,7 @@ face_mask_dataset = dataset_base.copy({
   'valid_info': '/content/face_mask/val/coco-annotations.json',
   'valid_images': '/content/face_mask/val/images',
   'has_gt': True,
-  'class_names': ('con-cubrebocas', 'mal-cubrebocas', 'sin-cubrebocas', )
+  'class_names': ('con_cubrebocas', 'mal_cubrebocas', 'sin_cubrebocas', )
 })
 
 
