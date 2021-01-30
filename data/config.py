@@ -783,7 +783,7 @@ yolact_facemask_config = yolact_resnet50_config.copy({
     # Training params
     'max_iter': 27000,
     'lr': 1e-3,
-    'lr_steps': (.35 * 40000, .75 * 40000, .88 * 40000, .93 * 40000),
+    'lr_steps': (.35 * 27000, .75 * 27000, .88 * 27000, .93 * 27000),
 })
 
 # ----------------------- YOLACT++ CONFIGS ----------------------- #
