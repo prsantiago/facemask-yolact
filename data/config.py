@@ -172,7 +172,7 @@ pascal_sbd_dataset = dataset_base.copy({
     'class_names': PASCAL_CLASSES,
 })
 
-face_mask_dataset = dataset_base.copy({
+facemask_dataset = dataset_base.copy({
   'name': 'Facemask',
   'train_info': '/content/facemask-dataset/version_7/train/coco-annotations.json',
   'train_images': '/content/facemask-dataset/version_7/train/images',
@@ -775,17 +775,14 @@ yolact_resnet50_pascal_config = yolact_resnet50_config.copy({
     })
 })
 
-yolact_resnet50_face_mask_config = yolact_resnet50_config.copy({
-    'name': 'yolact_resnet50_face_mask',
+yolact_facemask_config = yolact_resnet50_config.copy({
+    'name': 'yolact_facemask',
     # Dataset stuff
-    'dataset': face_mask_dataset,
-    'num_classes': len(face_mask_dataset.class_names) + 1,
+    'dataset': facemask_dataset,
+    'num_classes': len(facemask_dataset.class_names) + 1,
     # Training params
-    'max_iter': 40000,
-    'lr': 1e-4,
-    'momentum': 0.9,
-    'decay': 5e-4,
-    'gamma': 0.1,
+    'max_iter': 27000,
+    'lr': 1e-3,
     'lr_steps': (.35 * 40000, .75 * 40000, .88 * 40000, .93 * 40000),
 })
 
