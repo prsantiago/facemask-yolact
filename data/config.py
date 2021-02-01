@@ -174,10 +174,10 @@ pascal_sbd_dataset = dataset_base.copy({
 
 facemask_dataset = dataset_base.copy({
   'name': 'Facemask',
-  'train_info': '/content/facemask-dataset/version_7/train/coco-annotations.json',
-  'train_images': '/content/facemask-dataset/version_7/train/images',
-  'valid_info': '/content/facemask-dataset/version_7/val/coco-annotations.json',
-  'valid_images': '/content/facemask-dataset/version_7/val/images',
+  'train_info': '/content/facemask-dataset/train/coco-annotations.json',
+  'train_images': '/content/facemask-dataset/train/images',
+  'valid_info': '/content/facemask-dataset/val/coco-annotations.json',
+  'valid_images': '/content/facemask-dataset/val/images',
   'has_gt': True,
   'class_names': ('con_cubrebocas', 'mal_cubrebocas', 'sin_cubrebocas', )
 })
