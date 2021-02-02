@@ -604,7 +604,17 @@ yolact_im700_config = yolact_base_config.copy({
     }),
 })
 
-yolact_resnet50_config = yolact_base_config.copy({
+yolact_base_facemask_config = yolact_base_config.copy({
+    'name': 'yolact_base_facemask',
+    # Dataset stuff
+    'dataset': facemask_dataset,
+    'num_classes': len(facemask_dataset.class_names) + 1,
+    # Training params
+    'max_iter': 40000,
+    'lr_steps': (.35 * 40000, .75 * 40000, .88 * 40000, .93 * 40000),
+})
+
+yolact_resnet50_config = yolact_base_facemask_config.copy({
     'name': 'yolact_resnet50',
 
     'backbone': resnet50_backbone.copy({
@@ -620,25 +630,9 @@ yolact_resnet50_config = yolact_base_config.copy({
 
 yolact_facemask_config = yolact_resnet50_config.copy({
     'name': 'yolact_facemask',
-    # Dataset stuff
-    'dataset': facemask_dataset,
-    'num_classes': len(facemask_dataset.class_names) + 1,
-    # Training params
-    'max_iter': 40000,
-    'lr': 1e-3,
-    'lr_steps': (.35 * 40000, .75 * 40000, .88 * 40000, .93 * 40000),
 })
 
-yolact_base_facemask_config = yolact_base_config.copy({
-    'name': 'yolact_base_facemask',
-    # Dataset stuff
-    'dataset': facemask_dataset,
-    'num_classes': len(facemask_dataset.class_names) + 1,
-    # Training params
-    'max_iter': 40000,
-    'lr': 1e-3,
-    'lr_steps': (.35 * 40000, .75 * 40000, .88 * 40000, .93 * 40000),
-})
+
 
 # ----------------------- YOLACT++ CONFIGS ----------------------- #
 
