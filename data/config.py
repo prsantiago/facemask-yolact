@@ -307,8 +307,9 @@ fpn_base = Config({
 # ----------------------- CONFIG DEFAULTS ----------------------- #
 
 coco_base_config = Config({
-    'dataset': coco2014_dataset,
-    'num_classes': 81, # This should include the background class
+    #'dataset': facemask_dataset,
+    # This should include the background class
+    #'num_classes': len(facemask_dataset.class_names) + 1, 
 
     'max_iter': 400000,
 
@@ -547,8 +548,8 @@ yolact_base_config = coco_base_config.copy({
     'name': 'yolact_base',
 
     # Dataset stuff
-    'dataset': coco2017_dataset,
-    'num_classes': len(coco2017_dataset.class_names) + 1,
+    #'dataset': facemask_dataset,
+    #'num_classes': len(facemask_dataset.class_names) + 1,
 
     # Image Size
     'max_size': 550,
@@ -628,9 +629,20 @@ yolact_facemask_config = yolact_resnet50_config.copy({
     'lr_steps': (.35 * 40000, .75 * 40000, .88 * 40000, .93 * 40000),
 })
 
+yolact_base_facemask_config = yolact_base_config.copy({
+    'name': 'yolact_base_facemask',
+    # Dataset stuff
+    'dataset': facemask_dataset,
+    'num_classes': len(facemask_dataset.class_names) + 1,
+    # Training params
+    'max_iter': 40000,
+    'lr': 1e-3,
+    'lr_steps': (.35 * 40000, .75 * 40000, .88 * 40000, .93 * 40000),
+})
+
 # ----------------------- YOLACT++ CONFIGS ----------------------- #
 
-yolact_plus_base_config = yolact_base_config.copy({
+yolact_plus_base_config = yolact_base_facemask_config.copy({
     'name': 'yolact_plus_base',
 
     'backbone': resnet101_dcn_inter3_backbone.copy({
@@ -652,7 +664,11 @@ yolact_plus_base_config = yolact_base_config.copy({
     'discard_mask_area': 5*5,
 })
 
-yolact_plus_resnet50_config = yolact_plus_base_config.copy({
+yolact_plus_base_facemask_config = yolact_plus_base_config.copy({
+    'name': 'yolact_plus_base_facemask',
+})
+
+yolact_plus_resnet50_config = yolact_plus_base_facemask_config.copy({
     'name': 'yolact_plus_resnet50',
 
     'backbone': resnet50_dcnv2_backbone.copy({
@@ -664,6 +680,10 @@ yolact_plus_resnet50_config = yolact_plus_base_config.copy({
         'preapply_sqrt': False,
         'use_square_anchors': False,
     }),
+})
+
+yolact_plus_facemask_config = yolact_plus_resnet50_config.copy({
+    'name': 'yolact_plus_facemask',
 })
 
 
