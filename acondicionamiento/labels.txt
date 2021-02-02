@@ -1,0 +1,5 @@
+__ignore__
+_background_
+con_cubrebocas
+mal_cubrebocas
+sin_cubrebocas
