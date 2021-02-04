@@ -27,34 +27,6 @@ COLORS = ((244,  67,  54),
 MEANS = (103.94, 116.78, 123.68)
 STD   = (57.38, 57.12, 58.40)
 
-COCO_CLASSES = ('person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
-                'train', 'truck', 'boat', 'traffic light', 'fire hydrant',
-                'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog',
-                'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe',
-                'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
-                'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat',
-                'baseball glove', 'skateboard', 'surfboard', 'tennis racket',
-                'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl',
-                'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot',
-                'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
-                'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop',
-                'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven',
-                'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase',
-                'scissors', 'teddy bear', 'hair drier', 'toothbrush')
-
-COCO_LABEL_MAP = { 1:  1,  2:  2,  3:  3,  4:  4,  5:  5,  6:  6,  7:  7,  8:  8,
-                   9:  9, 10: 10, 11: 11, 13: 12, 14: 13, 15: 14, 16: 15, 17: 16,
-                  18: 17, 19: 18, 20: 19, 21: 20, 22: 21, 23: 22, 24: 23, 25: 24,
-                  27: 25, 28: 26, 31: 27, 32: 28, 33: 29, 34: 30, 35: 31, 36: 32,
-                  37: 33, 38: 34, 39: 35, 40: 36, 41: 37, 42: 38, 43: 39, 44: 40,
-                  46: 41, 47: 42, 48: 43, 49: 44, 50: 45, 51: 46, 52: 47, 53: 48,
-                  54: 49, 55: 50, 56: 51, 57: 52, 58: 53, 59: 54, 60: 55, 61: 56,
-                  62: 57, 63: 58, 64: 59, 65: 60, 67: 61, 70: 62, 72: 63, 73: 64,
-                  74: 65, 75: 66, 76: 67, 77: 68, 78: 69, 79: 70, 80: 71, 81: 72,
-                  82: 73, 84: 74, 85: 75, 86: 76, 87: 77, 88: 78, 89: 79, 90: 80}
-
-
-
 # ----------------------- CONFIG CLASS ----------------------- #
 
 class Config(object):
@@ -99,42 +71,29 @@ class Config(object):
             print(k, ' = ', v)
 
 
+# ----------------------- DATASET ----------------------- #
 
-# ----------------------- DATASETS ----------------------- #
-
-dataset_base = Config({
-    'name': 'Base Dataset',
+facemask_dataset = Config({
+    'name': 'facemask_dataset',
 
     # Training images and annotations
-    'train_images': './data/coco/images/',
-    'train_info':   'path_to_annotation_file',
+    'train_info': '/content/facemask-dataset/train/coco-annotations.json',
+    'train_images': '/content/facemask-dataset/train/images',
 
     # Validation images and annotations.
-    'valid_images': './data/coco/images/',
-    'valid_info':   'path_to_annotation_file',
+    'valid_info': '/content/facemask-dataset/val/coco-annotations.json',
+    'valid_images': '/content/facemask-dataset/val/images',
 
     # Whether or not to load GT. If this is False, eval.py quantitative evaluation won't work.
     'has_gt': True,
 
     # A list of names for each of you classes.
-    'class_names': COCO_CLASSES,
+    'class_names': ('con_cubrebocas', 'mal_cubrebocas', 'sin_cubrebocas', ),
 
-    # COCO class ids aren't sequential, so this is a bandage fix. If your ids aren't sequential,
-    # provide a map from category_id -> index in class_names + 1 (the +1 is there because it's 1-indexed).
-    # If not specified, this just assumes category ids start at 1 and increase sequentially.
+    # COCO class ids aren't sequential, so this is a bandage fix.
+    # this just assumes category ids start at 1 and increase sequentially.
     'label_map': None
 })
-
-facemask_dataset = dataset_base.copy({
-  'name': 'Facemask',
-  'train_info': '/content/facemask-dataset/train/coco-annotations.json',
-  'train_images': '/content/facemask-dataset/train/images',
-  'valid_info': '/content/facemask-dataset/val/coco-annotations.json',
-  'valid_images': '/content/facemask-dataset/val/images',
-  'has_gt': True,
-  'class_names': ('con_cubrebocas', 'mal_cubrebocas', 'sin_cubrebocas', )
-})
-
 
 
 # ----------------------- TRANSFORMS ----------------------- #
@@ -147,57 +106,19 @@ resnet_transform = Config({
 })
 
 
-
 # ----------------------- BACKBONES ----------------------- #
 
-backbone_base = Config({
-    'name': 'Base Backbone',
-    'path': 'path/to/pretrained/weights',
-    'type': object,
-    'args': tuple(),
-    'transform': resnet_transform,
-
-    'selected_layers': list(),
-    'pred_scales': list(),
-    'pred_aspect_ratios': list(),
-
-    'use_pixel_scales': False,
-    'preapply_sqrt': True,
-    'use_square_anchors': False,
-})
-
-resnet101_backbone = backbone_base.copy({
-    'name': 'ResNet101',
-    'path': 'yolact_base_54_800000.pth',
-    'type': ResNetBackbone,
-    'args': ([3, 4, 23, 3],),
-    'transform': resnet_transform,
-
-    'selected_layers': list(range(2, 8)),
-    'pred_scales': [[1]]*6,
-    'pred_aspect_ratios': [ [[0.66685089, 1.7073535, 0.87508774, 1.16524493, 0.49059086]] ] * 6,
-})
-
-resnet101_dcn_inter3_backbone = resnet101_backbone.copy({
-    'name': 'ResNet101_DCN_Interval3',
-    'path': 'yolact_plus_base_54_800000.pth',
-    'args': ([3, 4, 23, 3], [0, 4, 23, 3], 3),
-})
-
-resnet50_backbone = resnet101_backbone.copy({
+resnet50_backbone = Config({
     'name': 'ResNet50',
     'path': 'yolact_resnet50_54_800000.pth',
     'type': ResNetBackbone,
     'args': ([3, 4, 6, 3],),
     'transform': resnet_transform,
-})
 
-resnet50_dcnv2_backbone = resnet50_backbone.copy({
-    'name': 'ResNet50_DCNv2',
-    'path': 'yolact_plus_resnet50_54_800000.pth',
-    'args': ([3, 4, 6, 3], [0, 4, 6, 3]),
+    'use_pixel_scales': True,
+    'preapply_sqrt': False,
+    'use_square_anchors': True, # This is for backward compatability with a bug
 })
-
 
 
 # ----------------------- MASK BRANCH TYPES ----------------------- #
@@ -263,7 +184,6 @@ mask_type = Config({
 })
 
 
-
 # ----------------------- ACTIVATION FUNCTIONS ----------------------- #
 
 activation_func = Config({
@@ -273,7 +193,6 @@ activation_func = Config({
     'relu':    lambda x: torch.nn.functional.relu(x, inplace=True),
     'none':    lambda x: x,
 })
-
 
 
 # ----------------------- FPN DEFAULTS ----------------------- #
@@ -286,10 +205,10 @@ fpn_base = Config({
     'interpolation_mode': 'bilinear',
 
     # The number of extra layers to be produced by downsampling starting at P5
-    'num_downsample': 1,
+    'num_downsample': 2,
 
     # Whether to down sample with a 3x3 stride 2 conv layer instead of just a stride 2 selection
-    'use_conv_downsample': False,
+    'use_conv_downsample': True,
 
     # Whether to pad the pred layers with 1 on each side (I forgot to add this at the start)
     # This is just here for backwards compatibility
@@ -303,16 +222,9 @@ fpn_base = Config({
 })
 
 
-
 # ----------------------- CONFIG DEFAULTS ----------------------- #
 
 coco_base_config = Config({
-    #'dataset': facemask_dataset,
-    # This should include the background class
-    #'num_classes': len(facemask_dataset.class_names) + 1, 
-
-    'max_iter': 400000,
-
     # The maximum number of detections for evaluation
     'max_num_detections': 100,
 
@@ -323,7 +235,6 @@ coco_base_config = Config({
 
     # For each lr step, what to multiply the lr with
     'gamma': 0.1,
-    'lr_steps': (280000, 360000, 400000),
 
     # Initial learning rate to linearly warmup from (if until > 0)
     'lr_warmup_init': 1e-4,
@@ -334,7 +245,7 @@ coco_base_config = Config({
     # The terms to scale the respective loss by
     'conf_alpha': 1,
     'bbox_alpha': 1.5,
-    'mask_alpha': 0.4 / 256 * 140 * 140, # Some funky equation. Don't worry about it.
+    'mask_alpha': 6.125, 
 
     # Eval.py sets this if you just want to run YOLACT as a detector
     'eval_mask_branch': True,
@@ -347,11 +258,10 @@ coco_base_config = Config({
     'nms_thresh': 0.5,
 
     # See mask_type for details.
-    'mask_type': mask_type.direct,
+    'mask_type': mask_type.lincomb,
     'mask_size': 16,
     'masks_to_train': 100,
-    'mask_proto_src': None,
-    'mask_proto_net': [(256, 3, {}), (256, 3, {})],
+    'mask_proto_src': 0,
     'mask_proto_bias': False,
     'mask_proto_prototype_activation': activation_func.relu,
     'mask_proto_mask_activation': activation_func.sigmoid,
@@ -371,7 +281,7 @@ coco_base_config = Config({
     'mask_proto_reweight_coeff': 1,
     'mask_proto_coeff_diversity_loss': False,
     'mask_proto_coeff_diversity_alpha': 1,
-    'mask_proto_normalize_emulate_roi_pooling': False,
+    'mask_proto_normalize_emulate_roi_pooling': True,
     'mask_proto_double_loss': False,
     'mask_proto_double_loss_alpha': 1,
     'mask_proto_split_prototypes_by_head': False,
@@ -400,10 +310,10 @@ coco_base_config = Config({
     'freeze_bn': False,
 
     # Set this to a config object if you want an FPN (inherit from fpn_base). See fpn_base for details.
-    'fpn': None,
+    'fpn': fpn_base,
 
     # Use the same weights for each network head
-    'share_prediction_module': False,
+    'share_prediction_module': True,
 
     # For hard negative mining, instead of using the negatives that are leastl confidently background,
     # use negatives that are most confidently not background.
@@ -434,7 +344,7 @@ coco_base_config = Config({
 
     # Adds a 1x1 convolution directly to the biggest selected layer that predicts a semantic segmentations for each of the 80 classes.
     # This branch is only evaluated during training time and is just there for multitask learning.
-    'use_semantic_segmentation_loss': False,
+    'use_semantic_segmentation_loss': True,
     'semantic_segmentation_alpha': 1,
 
     # Adds another branch to the netwok to predict Mask IoU.
@@ -444,10 +354,6 @@ coco_base_config = Config({
     # Match gt boxes using the Box2Pix change metric instead of the standard IoU metric.
     # Note that the threshold you set for iou_threshold should be negative with this setting on.
     'use_change_matching': False,
-
-    # Uses the same network format as mask_proto_net, except this time it's for adding extra head layers before the final
-    # prediction in prediction modules. If this is none, no extra layers will be added.
-    'extra_head_net': None,
 
     # What params should the final head layers have (the ones that predict box, confidence, and mask coeffs)
     'head_layer_params': {'kernel_size': 3, 'padding': 1},
@@ -461,20 +367,20 @@ coco_base_config = Config({
     # For any priors whose maximum is less than the negative iou threshold, mark them as negative.
     # The rest are neutral and not used in calculating the loss.
     'positive_iou_threshold': 0.5,
-    'negative_iou_threshold': 0.5,
+    'negative_iou_threshold': 0.4,
 
     # When using ohem, the ratio between positives and negatives (3 means 3 negatives to 1 positive)
     'ohem_negpos_ratio': 3,
 
     # If less than 1, anchors treated as a negative that have a crowd iou over this threshold with
     # the crowd boxes will be treated as a neutral.
-    'crowd_iou_threshold': 1,
+    'crowd_iou_threshold': 0.7,
 
     # This is filled in at runtime by Yolact's __init__, so don't touch it
     'mask_dim': None,
 
     # Input image size.
-    'max_size': 300,
+    'max_size': 550,
     
     # Whether or not to do post processing on the cpu at test time
     'force_cpu_nms': True,
@@ -519,9 +425,6 @@ coco_base_config = Config({
     # Use command-line arguments to set this.
     'no_jit': False,
 
-    'backbone': None,
-    'name': 'base_config',
-
     # Fast Mask Re-scoring Network
     # Inspried by Mask Scoring R-CNN (https://arxiv.org/abs/1903.00241)
     # Do not crop out the mask with bbox but slide a convnet on the image-size mask,
@@ -541,148 +444,33 @@ coco_base_config = Config({
 })
 
 
-
 # ----------------------- YOLACT v1.0 CONFIGS ----------------------- #
 
-yolact_base_config = coco_base_config.copy({
-    'name': 'yolact_base',
+yolact_facemask_config = coco_base_config.copy({
+    'name': 'yolact_facemask',
 
-    # Dataset stuff
-    #'dataset': facemask_dataset,
-    #'num_classes': len(facemask_dataset.class_names) + 1,
-
-    # Image Size
-    'max_size': 550,
-    
-    # Training params
-    'lr_steps': (280000, 600000, 700000, 750000),
-    'max_iter': 800000,
-    
-    # Backbone Settings
-    'backbone': resnet101_backbone.copy({
-        'selected_layers': list(range(1, 4)),
-        'use_pixel_scales': True,
-        'preapply_sqrt': False,
-        'use_square_anchors': True, # This is for backward compatability with a bug
-
-        'pred_aspect_ratios': [ [[1, 1/2, 2]] ]*5,
-        'pred_scales': [[24], [48], [96], [192], [384]],
-    }),
-
-    # FPN Settings
-    'fpn': fpn_base.copy({
-        'use_conv_downsample': True,
-        'num_downsample': 2,
-    }),
-
-    # Mask Settings
-    'mask_type': mask_type.lincomb,
-    'mask_alpha': 6.125,
-    'mask_proto_src': 0,
-    'mask_proto_net': [(256, 3, {'padding': 1})] * 3 + [(None, -2, {}), (256, 3, {'padding': 1})] + [(32, 1, {})],
-    'mask_proto_normalize_emulate_roi_pooling': True,
-
-    # Other stuff
-    'share_prediction_module': True,
-    'extra_head_net': [(256, 3, {'padding': 1})],
-
-    'positive_iou_threshold': 0.5,
-    'negative_iou_threshold': 0.4,
-
-    'crowd_iou_threshold': 0.7,
-
-    'use_semantic_segmentation_loss': True,
-})
-
-yolact_im700_config = yolact_base_config.copy({
-    'name': 'yolact_im700',
-
-    'masks_to_train': 300,
-    'max_size': 700,
-    'backbone': yolact_base_config.backbone.copy({
-        'pred_scales': [[int(x[0] / yolact_base_config.max_size * 700)] for x in yolact_base_config.backbone.pred_scales],
-    }),
-})
-
-yolact_base_facemask_config = yolact_base_config.copy({
-    'name': 'yolact_base_facemask',
     # Dataset stuff
     'dataset': facemask_dataset,
     'num_classes': len(facemask_dataset.class_names) + 1,
+
     # Training params
     'max_iter': 40000,
     'lr_steps': (.35 * 40000, .75 * 40000, .88 * 40000, .93 * 40000),
-})
 
-yolact_resnet50_config = yolact_base_facemask_config.copy({
-    'name': 'yolact_resnet50',
+    # mask settings
+    'mask_proto_net': [(256, 3, {'padding': 1})] * 3 + [(None, -2, {}), (256, 3, {'padding': 1})] + [(32, 1, {})],
+    'extra_head_net': [(256, 3, {'padding': 1})],
 
     'backbone': resnet50_backbone.copy({
         'selected_layers': list(range(1, 4)),
-        
-        'pred_scales': yolact_base_config.backbone.pred_scales,
-        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
-        'use_pixel_scales': True,
-        'preapply_sqrt': False,
-        'use_square_anchors': True, # This is for backward compatability with a bug
-    }),
-})
-
-yolact_facemask_config = yolact_resnet50_config.copy({
-    'name': 'yolact_facemask',
-})
-
-
-
-# ----------------------- YOLACT++ CONFIGS ----------------------- #
-
-yolact_plus_base_config = yolact_base_facemask_config.copy({
-    'name': 'yolact_plus_base',
-
-    'backbone': resnet101_dcn_inter3_backbone.copy({
-        'selected_layers': list(range(1, 4)),
-        
         'pred_aspect_ratios': [ [[1, 1/2, 2]] ]*5,
-        'pred_scales': [[i * 2 ** (j / 3.0) for j in range(3)] for i in [24, 48, 96, 192, 384]],
-        'use_pixel_scales': True,
-        'preapply_sqrt': False,
-        'use_square_anchors': False,
+        'pred_scales': [[24], [48], [96], [192], [384]],
     }),
-
-    'use_maskiou': True,
-    'maskiou_net': [(8, 3, {'stride': 2}), (16, 3, {'stride': 2}), (32, 3, {'stride': 2}), (64, 3, {'stride': 2}), (128, 3, {'stride': 2})],
-    'maskiou_alpha': 25,
-    'rescore_bbox': False,
-    'rescore_mask': True,
-
-    'discard_mask_area': 5*5,
-})
-
-yolact_plus_base_facemask_config = yolact_plus_base_config.copy({
-    'name': 'yolact_plus_base_facemask',
-})
-
-yolact_plus_resnet50_config = yolact_plus_base_facemask_config.copy({
-    'name': 'yolact_plus_resnet50',
-
-    'backbone': resnet50_dcnv2_backbone.copy({
-        'selected_layers': list(range(1, 4)),
-        
-        'pred_aspect_ratios': [ [[1, 1/2, 2]] ]*5,
-        'pred_scales': [[i * 2 ** (j / 3.0) for j in range(3)] for i in [24, 48, 96, 192, 384]],
-        'use_pixel_scales': True,
-        'preapply_sqrt': False,
-        'use_square_anchors': False,
-    }),
-})
-
-yolact_plus_facemask_config = yolact_plus_resnet50_config.copy({
-    'name': 'yolact_plus_facemask',
 })
 
 
 # Default config
-cfg = yolact_base_config.copy()
+cfg = yolact_facemask_config.copy()
 
 def set_cfg(config_name:str):
     """ Sets the active config. Works even if cfg is already imported! """
@@ -698,4 +486,3 @@ def set_cfg(config_name:str):
 def set_dataset(dataset_name:str):
     """ Sets the dataset of the current config. """
     cfg.dataset = eval(dataset_name)
-    

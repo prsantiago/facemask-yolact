@@ -32,10 +32,10 @@ parser = argparse.ArgumentParser(
     description='Yolact Training Script')
 parser.add_argument('--batch_size', default=8, type=int,
                     help='Batch size for training')
-parser.add_argument('--resume', default=None, type=str,
+parser.add_argument('--resume', default='weights/yolact_resnet50_54_800000.pth', type=str,
                     help='Checkpoint state_dict file to resume training from. If this is "interrupt"'\
                          ', the model will resume training from the interrupt file.')
-parser.add_argument('--start_iter', default=-1, type=int,
+parser.add_argument('--start_iter', default=0, type=int,
                     help='Resume training at this iter. If this is -1, the iteration will be'\
                          'determined from the file name.')
 parser.add_argument('--num_workers', default=4, type=int,
@@ -54,9 +54,9 @@ parser.add_argument('--save_folder', default='weights/',
                     help='Directory for saving checkpoint models.')
 parser.add_argument('--log_folder', default='logs/',
                     help='Directory for saving logs.')
-parser.add_argument('--config', default=None,
+parser.add_argument('--config', default='yolact_facemask_config',
                     help='The config object to use.')
-parser.add_argument('--save_interval', default=10000, type=int,
+parser.add_argument('--save_interval', default=5000, type=int,
                     help='The number of iterations between saving the model.')
 parser.add_argument('--validation_size', default=5000, type=int,
                     help='The number of images to use for validation.')
@@ -170,8 +170,6 @@ class CustomDataParallel(nn.DataParallel):
         return out
 
 def train():
-    if not os.path.exists(args.save_folder):
-        os.mkdir(args.save_folder)
 
     dataset = COCODetection(image_path=cfg.dataset.train_images,
                             info_file=cfg.dataset.train_info,
@@ -208,9 +206,6 @@ def train():
 
         if args.start_iter == -1:
             args.start_iter = SavePath.from_str(args.resume).iteration
-    else:
-        print('Initializing weights...')
-        yolact_net.init_weights(backbone_path=args.save_folder + cfg.backbone.path)
 
     optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=args.momentum,
                           weight_decay=args.decay)
