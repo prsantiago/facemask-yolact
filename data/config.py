@@ -425,22 +425,7 @@ coco_base_config = Config({
     # Use command-line arguments to set this.
     'no_jit': False,
 
-    # Fast Mask Re-scoring Network
-    # Inspried by Mask Scoring R-CNN (https://arxiv.org/abs/1903.00241)
-    # Do not crop out the mask with bbox but slide a convnet on the image-size mask,
-    # then use global pooling to get the final mask score
-    'use_maskiou': False,
-    
-    # Archecture for the mask iou network. A (num_classes-1, 1, {}) layer is appended to the end.
-    'maskiou_net': [],
-
-    # Discard predicted masks whose area is less than this
-    'discard_mask_area': -1,
-
-    'maskiou_alpha': 1.0,
-    'rescore_mask': False,
     'rescore_bbox': False,
-    'maskious_to_train': -1,
 })
 
 
