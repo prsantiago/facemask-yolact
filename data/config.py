@@ -57,7 +57,30 @@ class Config(object):
 
 # ----------------------- DATASET ----------------------- #
 
-facemask_dataset = Config({
+dataset_base = Config({
+    'name': 'Base Dataset',
+
+    # Training images and annotations
+    'train_images': './data/coco/images/',
+    'train_info':   'path_to_annotation_file',
+
+    # Validation images and annotations.
+    'valid_images': './data/coco/images/',
+    'valid_info':   'path_to_annotation_file',
+
+    # Whether or not to load GT. If this is False, eval.py quantitative evaluation won't work.
+    'has_gt': True,
+
+    # A list of names for each of you classes.
+    'class_names': 'COCO_CLASSES',
+
+    # COCO class ids aren't sequential, so this is a bandage fix. If your ids aren't sequential,
+    # provide a map from category_id -> index in class_names + 1 (the +1 is there because it's 1-indexed).
+    # If not specified, this just assumes category ids start at 1 and increase sequentially.
+    'label_map': None
+})
+
+facemask_dataset = dataset_base.copy({
     'name': 'facemask_dataset',
 
     # Training images and annotations
@@ -68,15 +91,8 @@ facemask_dataset = Config({
     'valid_info': '/content/facemask-dataset/val/coco-annotations.json',
     'valid_images': '/content/facemask-dataset/val/images',
 
-    # Whether or not to load GT. If this is False, eval.py quantitative evaluation won't work.
-    'has_gt': True,
-
     # A list of names for each of you classes.
     'class_names': ('con_cubrebocas', 'mal_cubrebocas', 'sin_cubrebocas', ),
-
-    # COCO class ids aren't sequential, so this is a bandage fix.
-    # this just assumes category ids start at 1 and increase sequentially.
-    'label_map': None
 })
 
 
@@ -92,16 +108,28 @@ resnet_transform = Config({
 
 # ----------------------- BACKBONES ----------------------- #
 
-resnet50_backbone = Config({
+backbone_base = Config({
+    'name': 'Base Backbone',
+    'path': 'path/to/pretrained/weights',
+    'type': object,
+    'args': tuple(),
+    'transform': resnet_transform,
+
+    'selected_layers': list(),
+    'pred_scales': list(),
+    'pred_aspect_ratios': list(),
+
+    'use_pixel_scales': False,
+    'preapply_sqrt': True,
+    'use_square_anchors': False,
+})
+
+resnet50_backbone = backbone_base.copy({
     'name': 'ResNet50',
     'path': 'yolact_resnet50_54_800000.pth',
     'type': ResNetBackbone,
     'args': ([3, 4, 6, 3],),
     'transform': resnet_transform,
-
-    'use_pixel_scales': True,
-    'preapply_sqrt': False,
-    'use_square_anchors': True, # This is for backward compatability with a bug
 })
 
 
@@ -189,10 +217,10 @@ fpn_base = Config({
     'interpolation_mode': 'bilinear',
 
     # The number of extra layers to be produced by downsampling starting at P5
-    'num_downsample': 2,
+    'num_downsample': 1,
 
     # Whether to down sample with a 3x3 stride 2 conv layer instead of just a stride 2 selection
-    'use_conv_downsample': True,
+    'use_conv_downsample': False,
 
     # Whether to pad the pred layers with 1 on each side (I forgot to add this at the start)
     # This is just here for backwards compatibility
@@ -209,6 +237,11 @@ fpn_base = Config({
 # ----------------------- CONFIG DEFAULTS ----------------------- #
 
 coco_base_config = Config({
+    'dataset': dataset_base,
+    'num_classes': 81, # This should include the background class
+
+    'max_iter': 400000,
+
     # The maximum number of detections for evaluation
     'max_num_detections': 100,
 
@@ -219,6 +252,7 @@ coco_base_config = Config({
 
     # For each lr step, what to multiply the lr with
     'gamma': 0.1,
+    'lr_steps': (280000, 360000, 400000),
 
     # Initial learning rate to linearly warmup from (if until > 0)
     'lr_warmup_init': 1e-4,
@@ -229,7 +263,7 @@ coco_base_config = Config({
     # The terms to scale the respective loss by
     'conf_alpha': 1,
     'bbox_alpha': 1.5,
-    'mask_alpha': 6.125, 
+    'mask_alpha': 0.4 / 256 * 140 * 140, # Some funky equation. Don't worry about it.
 
     # Eval.py sets this if you just want to run YOLACT as a detector
     'eval_mask_branch': True,
@@ -242,10 +276,11 @@ coco_base_config = Config({
     'nms_thresh': 0.5,
 
     # See mask_type for details.
-    'mask_type': mask_type.lincomb,
+    'mask_type': mask_type.direct,
     'mask_size': 16,
     'masks_to_train': 100,
-    'mask_proto_src': 0,
+    'mask_proto_src': None,
+    'mask_proto_net': [(256, 3, {}), (256, 3, {})],
     'mask_proto_bias': False,
     'mask_proto_prototype_activation': activation_func.relu,
     'mask_proto_mask_activation': activation_func.sigmoid,
@@ -265,7 +300,7 @@ coco_base_config = Config({
     'mask_proto_reweight_coeff': 1,
     'mask_proto_coeff_diversity_loss': False,
     'mask_proto_coeff_diversity_alpha': 1,
-    'mask_proto_normalize_emulate_roi_pooling': True,
+    'mask_proto_normalize_emulate_roi_pooling': False,
     'mask_proto_double_loss': False,
     'mask_proto_double_loss_alpha': 1,
     'mask_proto_split_prototypes_by_head': False,
@@ -294,10 +329,10 @@ coco_base_config = Config({
     'freeze_bn': False,
 
     # Set this to a config object if you want an FPN (inherit from fpn_base). See fpn_base for details.
-    'fpn': fpn_base,
+    'fpn': None,
 
     # Use the same weights for each network head
-    'share_prediction_module': True,
+    'share_prediction_module': False,
 
     # For hard negative mining, instead of using the negatives that are leastl confidently background,
     # use negatives that are most confidently not background.
@@ -328,7 +363,7 @@ coco_base_config = Config({
 
     # Adds a 1x1 convolution directly to the biggest selected layer that predicts a semantic segmentations for each of the 80 classes.
     # This branch is only evaluated during training time and is just there for multitask learning.
-    'use_semantic_segmentation_loss': True,
+    'use_semantic_segmentation_loss': False,
     'semantic_segmentation_alpha': 1,
 
     # Adds another branch to the netwok to predict Mask IoU.
@@ -338,6 +373,10 @@ coco_base_config = Config({
     # Match gt boxes using the Box2Pix change metric instead of the standard IoU metric.
     # Note that the threshold you set for iou_threshold should be negative with this setting on.
     'use_change_matching': False,
+
+    # Uses the same network format as mask_proto_net, except this time it's for adding extra head layers before the final
+    # prediction in prediction modules. If this is none, no extra layers will be added.
+    'extra_head_net': None,
 
     # What params should the final head layers have (the ones that predict box, confidence, and mask coeffs)
     'head_layer_params': {'kernel_size': 3, 'padding': 1},
@@ -351,20 +390,20 @@ coco_base_config = Config({
     # For any priors whose maximum is less than the negative iou threshold, mark them as negative.
     # The rest are neutral and not used in calculating the loss.
     'positive_iou_threshold': 0.5,
-    'negative_iou_threshold': 0.4,
+    'negative_iou_threshold': 0.5,
 
     # When using ohem, the ratio between positives and negatives (3 means 3 negatives to 1 positive)
     'ohem_negpos_ratio': 3,
 
     # If less than 1, anchors treated as a negative that have a crowd iou over this threshold with
     # the crowd boxes will be treated as a neutral.
-    'crowd_iou_threshold': 0.7,
+    'crowd_iou_threshold': 1,
 
     # This is filled in at runtime by Yolact's __init__, so don't touch it
     'mask_dim': None,
 
     # Input image size.
-    'max_size': 550,
+    'max_size': 300,
     
     # Whether or not to do post processing on the cpu at test time
     'force_cpu_nms': True,
@@ -409,13 +448,77 @@ coco_base_config = Config({
     # Use command-line arguments to set this.
     'no_jit': False,
 
+    'backbone': None,
+    'name': 'base_config',
+
+    # Fast Mask Re-scoring Network
+    # Inspried by Mask Scoring R-CNN (https://arxiv.org/abs/1903.00241)
+    # Do not crop out the mask with bbox but slide a convnet on the image-size mask,
+    # then use global pooling to get the final mask score
+    'use_maskiou': False,
+    
+    # Archecture for the mask iou network. A (num_classes-1, 1, {}) layer is appended to the end.
+    'maskiou_net': [],
+
+    # Discard predicted masks whose area is less than this
+    'discard_mask_area': -1,
+
+    'maskiou_alpha': 1.0,
+    'rescore_mask': False,
     'rescore_bbox': False,
+    'maskious_to_train': -1,
 })
 
 
 # ----------------------- YOLACT v1.0 CONFIGS ----------------------- #
 
-yolact_facemask_config = coco_base_config.copy({
+yolact_base_config = coco_base_config.copy({
+    'name': 'yolact_base',
+
+    # Image Size
+    'max_size': 550,
+    
+    # Training params
+    'lr_steps': (280000, 600000, 700000, 750000),
+    'max_iter': 800000,
+    
+    # Backbone Settings
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+
+        'pred_aspect_ratios': [ [[1, 1/2, 2]] ]*5,
+        'pred_scales': [[24], [48], [96], [192], [384]],
+    }),
+
+    # FPN Settings
+    'fpn': fpn_base.copy({
+        'use_conv_downsample': True,
+        'num_downsample': 2,
+    }),
+
+    # Mask Settings
+    'mask_type': mask_type.lincomb,
+    'mask_alpha': 6.125,
+    'mask_proto_src': 0,
+    'mask_proto_net': [(256, 3, {'padding': 1})] * 3 + [(None, -2, {}), (256, 3, {'padding': 1})] + [(32, 1, {})],
+    'mask_proto_normalize_emulate_roi_pooling': True,
+
+    # Other stuff
+    'share_prediction_module': True,
+    'extra_head_net': [(256, 3, {'padding': 1})],
+
+    'positive_iou_threshold': 0.5,
+    'negative_iou_threshold': 0.4,
+
+    'crowd_iou_threshold': 0.7,
+
+    'use_semantic_segmentation_loss': True,
+})
+
+yolact_facemask_config = yolact_base_config.copy({
     'name': 'yolact_facemask',
 
     # Dataset stuff
@@ -426,14 +529,8 @@ yolact_facemask_config = coco_base_config.copy({
     'max_iter': 40000,
     'lr_steps': (.35 * 40000, .75 * 40000, .88 * 40000, .93 * 40000),
 
-    # mask settings
-    'mask_proto_net': [(256, 3, {'padding': 1})] * 3 + [(None, -2, {}), (256, 3, {'padding': 1})] + [(32, 1, {})],
-    'extra_head_net': [(256, 3, {'padding': 1})],
-
     'backbone': resnet50_backbone.copy({
-        'selected_layers': list(range(1, 4)),
         'pred_aspect_ratios': [ [[1, 1/2, 2]] ]*5,
-        'pred_scales': [[24], [48], [96], [192], [384]],
     }),
 })
 
