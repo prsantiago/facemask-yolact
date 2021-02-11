@@ -49,7 +49,7 @@ def parse_args(argv=None):
                         help='Use cuda to evaulate model')
     parser.add_argument('--fast_nms', default=True, type=str2bool,
                         help='Whether to use a faster, but not entirely correct version of NMS.')
-    parser.add_argument('--cross_class_nms', default=False, type=str2bool,
+    parser.add_argument('--cross_class_nms', default=True, type=str2bool,
                         help='Whether compute NMS cross-class or per-class.')
     parser.add_argument('--display_masks', default=True, type=str2bool,
                         help='Whether or not to display masks over bounding boxes')
@@ -101,7 +101,7 @@ def parse_args(argv=None):
                         help='An input folder of images and output folder to save detected images. Should be in the format input->output.')
     parser.add_argument('--video', default=None, type=str,
                         help='A path to a video to evaluate on. Passing in a number will use that index webcam.')
-    parser.add_argument('--video_multiframe', default=1, type=int,
+    parser.add_argument('--video_multiframe', default=4, type=int,
                         help='The number of frames to evaluate in parallel to make videos play at higher fps.')
     parser.add_argument('--score_threshold', default=0.15, type=float,
                         help='Detections with a score under this threshold will not be considered. This currently only works in display mode.')
