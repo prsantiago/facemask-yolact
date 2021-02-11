@@ -131,6 +131,7 @@ iou_thresholds = [x / 100 for x in range(50, 100, 5)]
 coco_cats = {} # Call prep_coco_cats to fill this
 coco_cats_inv = {}
 color_cache = defaultdict(lambda: {})
+label_detections = []
 
 def prep_display(dets_out, img, h, w, undo_transform=True, class_color=False, mask_alpha=0.45, fps_str=''):
     """
@@ -169,7 +170,8 @@ def prep_display(dets_out, img, h, w, undo_transform=True, class_color=False, ma
     # Also keeps track of a per-gpu color cache for maximum speed
     def get_color(j, on_gpu=None):
         global color_cache
-        color_idx = (classes[j] * 5 if class_color else j * 5) % len(COLORS)
+        # color_idx = (classes[j] * 5 if class_color else j * 5) % len(COLORS)
+        color_idx = classes[j]
         
         if on_gpu is not None and color_idx in color_cache[on_gpu]:
             return color_cache[on_gpu][color_idx]
@@ -244,6 +246,7 @@ def prep_display(dets_out, img, h, w, undo_transform=True, class_color=False, ma
 
             if args.display_text:
                 _class = cfg.dataset.class_names[classes[j]]
+                label_detections.append(_class)
                 text_str = '%s: %.2f' % (_class, score) if args.display_scores else _class
 
                 font_face = cv2.FONT_HERSHEY_DUPLEX
@@ -1103,5 +1106,9 @@ if __name__ == '__main__':
             net = net.cuda()
 
         evaluate(net, dataset)
+
+        print('con_cubrebocas = ',label_detections.count('con_cubrebocas'),'de 23 reales')
+        print('sin_cubrebocas = ',label_detections.count('sin_cubrebocas'), 'de 23 reales')
+        print('mal_cubrebocas = ',label_detections.count('mal_cubrebocas'), 'de 13 reales')
 
 
