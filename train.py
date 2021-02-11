@@ -56,7 +56,7 @@ parser.add_argument('--log_folder', default='logs/',
                     help='Directory for saving logs.')
 parser.add_argument('--config', default='yolact_facemask_config',
                     help='The config object to use.')
-parser.add_argument('--save_interval', default=5000, type=int,
+parser.add_argument('--save_interval', default=8000, type=int,
                     help='The number of iterations between saving the model.')
 parser.add_argument('--validation_size', default=5000, type=int,
                     help='The number of images to use for validation.')
@@ -170,6 +170,8 @@ class CustomDataParallel(nn.DataParallel):
         return out
 
 def train():
+    if not os.path.exists(args.save_folder):
+        os.mkdir(args.save_folder)
 
     dataset = COCODetection(image_path=cfg.dataset.train_images,
                             info_file=cfg.dataset.train_info,
@@ -206,6 +208,9 @@ def train():
 
         if args.start_iter == -1:
             args.start_iter = SavePath.from_str(args.resume).iteration
+    else:
+        print('Initializing weights...')
+        yolact_net.init_weights(backbone_path=args.save_folder + cfg.backbone.path)
 
     optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=args.momentum,
                           weight_decay=args.decay)

@@ -4,15 +4,28 @@ import pickle
 
 from collections import OrderedDict
 
+try:
+    from dcn_v2 import DCN
+except ImportError:
+    def DCN(*args, **kwdargs):
+        raise Exception('DCN could not be imported. If you want to use YOLACT++ models, compile DCN. Check the README for instructions.')
+
 class Bottleneck(nn.Module):
     """ Adapted from torchvision.models.resnet """
     expansion = 4
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None, norm_layer=nn.BatchNorm2d, dilation=1):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, norm_layer=nn.BatchNorm2d, dilation=1, use_dcn=False):
         super(Bottleneck, self).__init__()
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False, dilation=dilation)
         self.bn1 = norm_layer(planes)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
+        if use_dcn:
+            self.conv2 = DCN(planes, planes, kernel_size=3, stride=stride,
+                                padding=dilation, dilation=dilation, deformable_groups=1)
+            self.conv2.bias.data.zero_()
+            self.conv2.conv_offset_mask.weight.data.zero_()
+            self.conv2.conv_offset_mask.bias.data.zero_()
+        else:
+            self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
                                 padding=dilation, bias=False, dilation=dilation)
         self.bn2 = norm_layer(planes)
         self.conv3 = nn.Conv2d(planes, planes * 4, kernel_size=1, bias=False, dilation=dilation)
@@ -47,7 +60,7 @@ class Bottleneck(nn.Module):
 class ResNetBackbone(nn.Module):
     """ Adapted from torchvision.models.resnet """
 
-    def __init__(self, layers, atrous_layers=[], block=Bottleneck, norm_layer=nn.BatchNorm2d):
+    def __init__(self, layers, dcn_layers=[0, 0, 0, 0], dcn_interval=1, atrous_layers=[], block=Bottleneck, norm_layer=nn.BatchNorm2d):
         super().__init__()
 
         # These will be populated by _make_layer
@@ -66,10 +79,10 @@ class ResNetBackbone(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         
-        self._make_layer(block, 64, layers[0])
-        self._make_layer(block, 128, layers[1], stride=2)
-        self._make_layer(block, 256, layers[2], stride=2)
-        self._make_layer(block, 512, layers[3], stride=2)
+        self._make_layer(block, 64, layers[0], dcn_layers=dcn_layers[0], dcn_interval=dcn_interval)
+        self._make_layer(block, 128, layers[1], stride=2, dcn_layers=dcn_layers[1], dcn_interval=dcn_interval)
+        self._make_layer(block, 256, layers[2], stride=2, dcn_layers=dcn_layers[2], dcn_interval=dcn_interval)
+        self._make_layer(block, 512, layers[3], stride=2, dcn_layers=dcn_layers[3], dcn_interval=dcn_interval)
 
         # This contains every module that should be initialized by loading in pretrained weights.
         # Any extra layers added onto this that won't be initialized by init_backbone will not be
@@ -77,7 +90,8 @@ class ResNetBackbone(nn.Module):
         # with xavier, and which ones to leave alone.
         self.backbone_modules = [m for m in self.modules() if isinstance(m, nn.Conv2d)]
         
-    def _make_layer(self, block, planes, blocks, stride=1):
+    
+    def _make_layer(self, block, planes, blocks, stride=1, dcn_layers=0, dcn_interval=1):
         """ Here one layer means a string of n Bottleneck blocks. """
         downsample = None
 
@@ -96,10 +110,12 @@ class ResNetBackbone(nn.Module):
             )
 
         layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, self.norm_layer, self.dilation))
+        use_dcn = (dcn_layers >= blocks)
+        layers.append(block(self.inplanes, planes, stride, downsample, self.norm_layer, self.dilation, use_dcn=use_dcn))
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes, norm_layer=self.norm_layer))
+            use_dcn = ((i+dcn_layers) >= blocks) and (i % dcn_interval == 0)
+            layers.append(block(self.inplanes, planes, norm_layer=self.norm_layer, use_dcn=use_dcn))
         layer = nn.Sequential(*layers)
 
         self.channels.append(planes * block.expansion)
@@ -140,6 +156,62 @@ class ResNetBackbone(nn.Module):
     def add_layer(self, conv_channels=1024, downsample=2, depth=1, block=Bottleneck):
         """ Add a downsample layer to the backbone as per what SSD does. """
         self._make_layer(block, conv_channels // block.expansion, blocks=depth, stride=downsample)
+
+
+
+
+class ResNetBackboneGN(ResNetBackbone):
+
+    def __init__(self, layers, num_groups=32):
+        super().__init__(layers, norm_layer=lambda x: nn.GroupNorm(num_groups, x))
+
+    def init_backbone(self, path):
+        """ The path here comes from detectron. So we load it differently. """
+        with open(path, 'rb') as f:
+            state_dict = pickle.load(f, encoding='latin1') # From the detectron source
+            state_dict = state_dict['blobs']
+        
+        our_state_dict_keys = list(self.state_dict().keys())
+        new_state_dict = {}
+    
+        gn_trans     = lambda x: ('gn_s' if x == 'weight' else 'gn_b')
+        layeridx2res = lambda x: 'res' + str(int(x)+2)
+        block2branch = lambda x: 'branch2' + ('a', 'b', 'c')[int(x[-1:])-1]
+
+        # Transcribe each Detectron weights name to a Yolact weights name
+        for key in our_state_dict_keys:
+            parts = key.split('.')
+            transcribed_key = ''
+
+            if (parts[0] == 'conv1'):
+                transcribed_key = 'conv1_w'
+            elif (parts[0] == 'bn1'):
+                transcribed_key = 'conv1_' + gn_trans(parts[1])
+            elif (parts[0] == 'layers'):
+                if int(parts[1]) >= self.num_base_layers: continue
+
+                transcribed_key = layeridx2res(parts[1])
+                transcribed_key += '_' + parts[2] + '_'
+
+                if parts[3] == 'downsample':
+                    transcribed_key += 'branch1_'
+                    
+                    if parts[4] == '0':
+                        transcribed_key += 'w'
+                    else:
+                        transcribed_key += gn_trans(parts[5])
+                else:
+                    transcribed_key += block2branch(parts[3]) + '_'
+
+                    if 'conv' in parts[3]:
+                        transcribed_key += 'w'
+                    else:
+                        transcribed_key += gn_trans(parts[4])
+
+            new_state_dict[key] = torch.Tensor(state_dict[transcribed_key])
+        
+        # strict=False because we may have extra unitialized layers at this point
+        self.load_state_dict(new_state_dict, strict=False)
 
 
 def construct_backbone(cfg):

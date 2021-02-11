@@ -360,6 +360,21 @@ class FPN(ScriptModuleWrapper):
 
         return out
 
+class FastMaskIoUNet(ScriptModuleWrapper):
+
+    def __init__(self):
+        super().__init__()
+        input_channels = 1
+        last_layer = [(cfg.num_classes-1, 1, {})]
+        self.maskiou_net, _ = make_net(input_channels, cfg.maskiou_net + last_layer, include_last_relu=True)
+
+    def forward(self, x):
+        x = self.maskiou_net(x)
+        maskiou_p = F.max_pool2d(x, kernel_size=x.size()[2:]).squeeze(-1).squeeze(-1)
+
+        return maskiou_p
+
+
 
 class Yolact(nn.Module):
     """
@@ -415,6 +430,9 @@ class Yolact(nn.Module):
 
         self.selected_layers = cfg.backbone.selected_layers
         src_channels = self.backbone.channels
+
+        if cfg.use_maskiou:
+            self.maskiou_net = FastMaskIoUNet()
 
         if cfg.fpn is not None:
             # Some hacky rewiring to accomodate the FPN

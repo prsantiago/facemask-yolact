@@ -175,7 +175,7 @@ def match(pos_thresh, neg_thresh, truths, priors, labels, crowd_boxes, loc_t, co
     Return:
         The matched indices corresponding to 1)location and 2)confidence preds.
     """
-    decoded_priors = decode(loc_data, priors) if cfg.use_prediction_matching else point_form(priors)
+    decoded_priors = decode(loc_data, priors, cfg.use_yolo_regressors) if cfg.use_prediction_matching else point_form(priors)
     
     # Size [num_objects, num_priors]
     overlaps = jaccard(truths, decoded_priors) if not cfg.use_change_matching else change(truths, decoded_priors)
@@ -221,13 +221,13 @@ def match(pos_thresh, neg_thresh, truths, priors, labels, crowd_boxes, loc_t, co
         # Set non-positives with crowd iou of over the threshold to be neutral.
         conf[(conf <= 0) & (best_crowd_overlap > cfg.crowd_iou_threshold)] = -1
 
-    loc = encode(matches, priors)
+    loc = encode(matches, priors, cfg.use_yolo_regressors)
     loc_t[idx]  = loc    # [num_priors,4] encoded offsets to learn
     conf_t[idx] = conf   # [num_priors] top class label for each prior
     idx_t[idx]  = best_truth_idx # [num_priors] indices for lookup
 
 @torch.jit.script
-def encode(matched, priors):
+def encode(matched, priors, use_yolo_regressors:bool=False):
     """
     Encode bboxes matched with each prior into the format
     produced by the network. See decode for more details on
@@ -240,23 +240,32 @@ def encode(matched, priors):
             outputted by the network (see decode). Size: [num_priors, 4]
     """
 
-    
-    variances = [0.1, 0.2]
+    if use_yolo_regressors:
+        # Exactly the reverse of what we did in decode
+        # In fact encode(decode(x, p), p) should be x
+        boxes = center_size(matched)
 
-    # dist b/t match center and prior's center
-    g_cxcy = (matched[:, :2] + matched[:, 2:])/2 - priors[:, :2]
-    # encode variance
-    g_cxcy /= (variances[0] * priors[:, 2:])
-    # match wh / prior wh
-    g_wh = (matched[:, 2:] - matched[:, :2]) / priors[:, 2:]
-    g_wh = torch.log(g_wh) / variances[1]
-    # return target for smooth_l1_loss
-    loc = torch.cat([g_cxcy, g_wh], 1)  # [num_priors,4]
+        loc = torch.cat((
+            boxes[:, :2] - priors[:, :2],
+            torch.log(boxes[:, 2:] / priors[:, 2:])
+        ), 1)
+    else:
+        variances = [0.1, 0.2]
+
+        # dist b/t match center and prior's center
+        g_cxcy = (matched[:, :2] + matched[:, 2:])/2 - priors[:, :2]
+        # encode variance
+        g_cxcy /= (variances[0] * priors[:, 2:])
+        # match wh / prior wh
+        g_wh = (matched[:, 2:] - matched[:, :2]) / priors[:, 2:]
+        g_wh = torch.log(g_wh) / variances[1]
+        # return target for smooth_l1_loss
+        loc = torch.cat([g_cxcy, g_wh], 1)  # [num_priors,4]
         
     return loc
 
 @torch.jit.script
-def decode(loc, priors):
+def decode(loc, priors, use_yolo_regressors:bool=False):
     """
     Decode predicted bbox coordinates using the same scheme
     employed by Yolov2: https://arxiv.org/pdf/1612.08242.pdf
@@ -283,13 +292,22 @@ def decode(loc, priors):
              form with size [num_priors, 4]
     """
 
-    variances = [0.1, 0.2]
-    
-    boxes = torch.cat((
-        priors[:, :2] + loc[:, :2] * variances[0] * priors[:, 2:],
-        priors[:, 2:] * torch.exp(loc[:, 2:] * variances[1])), 1)
-    boxes[:, :2] -= boxes[:, 2:] / 2
-    boxes[:, 2:] += boxes[:, :2]
+    if use_yolo_regressors:
+        # Decoded boxes in center-size notation
+        boxes = torch.cat((
+            loc[:, :2] + priors[:, :2],
+            priors[:, 2:] * torch.exp(loc[:, 2:])
+        ), 1)
+
+        boxes = point_form(boxes)
+    else:
+        variances = [0.1, 0.2]
+        
+        boxes = torch.cat((
+            priors[:, :2] + loc[:, :2] * variances[0] * priors[:, 2:],
+            priors[:, 2:] * torch.exp(loc[:, 2:] * variances[1])), 1)
+        boxes[:, :2] -= boxes[:, 2:] / 2
+        boxes[:, 2:] += boxes[:, :2]
     
     return boxes
 
