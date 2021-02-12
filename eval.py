@@ -409,6 +409,7 @@ def prep_metrics(ap_data, dets, img, gt, gt_masks, h, w, num_crowd, image_id, de
             return
 
         classes = list(classes.cpu().numpy().astype(int))
+        label_detections.extend(classes)
         if isinstance(scores, list):
             box_scores = list(scores[0].cpu().numpy().astype(float))
             mask_scores = list(scores[1].cpu().numpy().astype(float))
@@ -997,7 +998,11 @@ def evaluate(net:Yolact, dataset, train_mode=False):
                     print('Saving data...')
                     with open(args.ap_data_file, 'wb') as f:
                         pickle.dump(ap_data, f)
-
+                print()
+                print('con_cubrebocas = ',label_detections.count(0),'de 60 reales')
+                print('sin_cubrebocas = ',label_detections.count(2), 'de 60 reales')
+                print('mal_cubrebocas = ',label_detections.count(1), 'de 60 reales')
+                print()
                 return calc_map(ap_data)
         elif args.benchmark:
             print()
