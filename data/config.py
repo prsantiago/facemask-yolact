@@ -677,9 +677,10 @@ yolact_facemask_config = yolact_resnet50_config.copy({
     'max_iter': 40000,
     'lr_steps': (.35 * 40000, .75 * 40000, .88 * 40000, .93 * 40000),
 
-    'backbone': resnet50_backbone.copy({
+    'backbone': yolact_resnet50_config.backbone.copy({
         'pred_aspect_ratios': [ [[1, 1/2, 2]] ]*5,
     }),
+    
 })
 
 # ----------------------- YOLACT++ CONFIGS ----------------------- #
