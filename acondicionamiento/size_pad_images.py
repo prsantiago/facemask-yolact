@@ -4,23 +4,23 @@ import numpy as np
 from os import walk
 import cv2
  
-# python size_pad_images.py width height input_dir output_dir
-# python size_pad_images.py 1280 720 C:/users/matt/../Datasets/Stop_signs_by_hand/Images C:/users/matt/../Datasets/Stop_signs_by_hand/images/size_pad
+# python size_pad_images.py input_dir output_dir
+# python size_pad_images.py C:/users/matt/../Datasets/Stop_signs_by_hand/Images C:/users/matt/../Datasets/Stop_signs_by_hand/images/size_pad
 
 # width to resize
-width = int(sys.argv[1])
+width = 550
 # height to resize
-height = int(sys.argv[2])
+height = 550
 # location of the input dataset
 input_dir = sys.argv[3]
 # location of the output dataset
 out_dir = sys.argv[4]
  
-if len(sys.argv) > 5:
+if len(sys.argv) > 3:
     print("Too many arguments - " + str(len(sys.argv)) + " .Please specify width, height, input directory and output directory.")
     sys.exit(0)
 
-if len(sys.argv) < 5:
+if len(sys.argv) < 3:
     print("Not enough arguments - " + str(len(sys.argv)) + " .Please specify width, height, input directory and output directory.")
     sys.exit(0)
  
