@@ -627,9 +627,9 @@ def evalimages(net:Yolact, input_folder:str, output_folder:str):
         evalimage(net, path, out_path)
         print(path + ' -> ' + out_path)
     print()
-    print('con_cubrebocas = ',label_detections.count('con_cubrebocas'),'de 23 reales')
-    print('sin_cubrebocas = ',label_detections.count('sin_cubrebocas'), 'de 23 reales')
-    print('mal_cubrebocas = ',label_detections.count('mal_cubrebocas'), 'de 13 reales')
+    print('con_cubrebocas = ',label_detections.count('con_cubrebocas'),'detectadas de 23 reales')
+    print('sin_cubrebocas = ',label_detections.count('sin_cubrebocas'), 'detectadas de 23 reales')
+    print('mal_cubrebocas = ',label_detections.count('mal_cubrebocas'), 'detectadas de 13 reales')
     print()
     print('Done.')
 
@@ -999,9 +999,9 @@ def evaluate(net:Yolact, dataset, train_mode=False):
                     with open(args.ap_data_file, 'wb') as f:
                         pickle.dump(ap_data, f)
                 print()
-                print('con_cubrebocas = ',label_detections.count(0),'de 60 reales')
-                print('sin_cubrebocas = ',label_detections.count(2), 'de 60 reales')
-                print('mal_cubrebocas = ',label_detections.count(1), 'de 60 reales')
+                print('con_cubrebocas = ',label_detections.count(0),'detectadas de 60 reales')
+                print('sin_cubrebocas = ',label_detections.count(2), 'detectadas de 60 reales')
+                print('mal_cubrebocas = ',label_detections.count(1), 'detectadas de 60 reales')
                 print()
                 return calc_map(ap_data)
         elif args.benchmark:
