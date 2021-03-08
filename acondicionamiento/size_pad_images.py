@@ -30,7 +30,7 @@ print("Working...")
 images = []
 ext = (".jpeg", ".jpg", ".png")
 
-os.makedirs(args.output_dir)
+os.makedirs(out_dir)
  
 for (dirpath, dirnames, filenames) in walk(input_dir):
     for filename in filenames:
