@@ -12,9 +12,9 @@ width = 550
 # height to resize
 height = 550
 # location of the input dataset
-input_dir = sys.argv[3]
+input_dir = sys.argv[1]
 # location of the output dataset
-out_dir = sys.argv[4]
+out_dir = sys.argv[2]
  
 if len(sys.argv) > 3:
     print("Too many arguments - " + str(len(sys.argv)) + " .Please specify width, height, input directory and output directory.")
@@ -29,6 +29,8 @@ print("Working...")
 # get all the pictures in directory
 images = []
 ext = (".jpeg", ".jpg", ".png")
+
+os.makedirs(args.output_dir)
  
 for (dirpath, dirnames, filenames) in walk(input_dir):
     for filename in filenames:
