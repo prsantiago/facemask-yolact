@@ -25,6 +25,7 @@ Si se quiere seguir todo el proceso, complete los siguientes cuadernos en orden:
 
  - Pesos del modelo: [yolact_facemask_416_40000.pth](https://drive.google.com/file/d/1-1k5bKwFC6miuZJSMVwxo16d3fkERBaK/view?usp=sharing)
  - Dataset con el que se entreno: [facemask-dataset](https://github.com/prsantiago/facemask-dataset)
+ - Bitacora del entrenamiento: [yolact_facemask_416_40000.log](https://drive.google.com/file/d/1sr-xU0dZ0ZjD8wxicUy6L7aSPwge01Wn/view?usp=sharing)
 
 ## Ejemplos
 
