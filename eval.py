@@ -632,6 +632,7 @@ def evalimages(net:Yolact, input_folder:str, output_folder:str):
     print('mal_cubrebocas = ',label_detections.count('mal_cubrebocas'), 'detectadas de 13 reales')
     print()
     print('Done.')
+    label_detections.clear()
 
 from multiprocessing.pool import ThreadPool
 from queue import Queue
@@ -1003,6 +1004,7 @@ def evaluate(net:Yolact, dataset, train_mode=False):
                 print('sin_cubrebocas = ',label_detections.count(2), 'detectadas de 60 reales')
                 print('mal_cubrebocas = ',label_detections.count(1), 'detectadas de 60 reales')
                 print()
+                label_detections.clear()
                 return calc_map(ap_data)
         elif args.benchmark:
             print()
